@@ -1,0 +1,34 @@
+I want alot more anime cached. top - 1000 (limit per page is 25 rn, try 50 as per mal official) >> Done. I changed this to 50 pages with 25 limit.
+
+Incorporate Theme, and Demographic as features
+
+I increased Synopsis length from 300 to 800, see if it doesnt cause memory load.
+
+reduce recency score _>> Done. Decay constant increased from 10 to 20
+
+manage recency score, hype score, score normalization, popularity bias.
+
+Adjust genre_sim Threshold after some testing >> Done. changed to 0.35
+
+Hype score is not being used as a signal, but is present in as a feature
+
+Add Classic boost : e.g. if age > 20 and score > 8.1, set recency_score = 0.3. The recency signal weight in SIGNAL_WEIGHTS (currently 0.10) also directly controls how much this matters.
+
+Maybe reduce score_pref in UserModel to reduce high score bias
+
+Shows being shown repeatedly.(shows other than ones I selected also there in the next batch)
+
+Satrting recs are all highscore, and getting to low score is a pain(change weight of score_sim in signal_content to 0.25)
+
+low diversity of recommendations(because of items being recommended repeatedly)
+
+Ideally should not show multiple seasons of the same show
+
+Refresh button doesnt work
+
+Initial Recommendations should be cover alot of genres to allow accessible branching
+
+The merged Graph could potentially use weights for degree of overlap in genres or where recommendation exists and genres overlap maybe then use UCS instead of BFS.
+
+Change Genre decay to 0.7 for more reactive change in recommendations
+

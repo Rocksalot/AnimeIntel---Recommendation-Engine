@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anime Intel — Recommendation Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:          #0a0a0a;
+    --bg-card:     #111111;
+    --bg-raised:   #161616;
+    --bg-hover:    #1c1c1c;
+    --border:      rgba(255,255,255,0.07);
+    --border-mid:  rgba(255,255,255,0.12);
+    --border-hi:   rgba(255,255,255,0.22);
+    --text-pri:    #f0ede8;
+    --text-sec:    #888880;
+    --text-ter:    #484845;
+    --gold:        #c9922a;
+    --gold-dim:    rgba(201,146,42,0.18);
+    --gold-glow:   rgba(201,146,42,0.08);
+    --radius-sm:   6px;
+    --radius-md:   10px;
+    --radius-lg:   14px;
+    --ease:        cubic-bezier(0.4, 0, 0.2, 1);
+    --t:           0.3s;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-pri);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Scrollbar ──────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+  /* ── Layout ─────────────────────────────── */
+  .shell { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+
+  /* ── Header ─────────────────────────────── */
+  header {
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(10,10,10,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .logo-text {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 28px;
+    letter-spacing: 0.04em;
+    color: var(--text-pri);
+    line-height: 1;
+  }
+
+  .logo-accent { color: var(--gold); }
+
+  .logo-sub {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-ter);
+    font-weight: 300;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-mid);
+    background: transparent;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: all var(--t) var(--ease);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover {
+    border-color: var(--border-hi);
+    color: var(--text-pri);
+    background: var(--bg-raised);
+  }
+
+  .filter-btn.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #0a0a0a;
+    font-weight: 500;
+  }
+
+  .refresh-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-mid);
+    background: transparent;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: all var(--t) var(--ease);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .refresh-btn:hover {
+    border-color: var(--border-hi);
+    color: var(--text-pri);
+  }
+
+  /* ── Signal strip ────────────────────────── */
+  .signal-strip {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 0.65rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    overflow-x: auto;
+  }
+
+  .signal-strip-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-ter);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .signals {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .sig {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--text-sec);
+    white-space: nowrap;
+  }
+
+  .sig-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .sig-track {
+    width: 44px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .sig-fill { height: 100%; border-radius: 2px; }
+
+  /* ── Hero ────────────────────────────────── */
+  .hero {
+    padding: 3.5rem 2rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-ter);
+    margin-bottom: 0.75rem;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(56px, 8vw, 100px);
+    line-height: 0.9;
+    color: var(--text-pri);
+    letter-spacing: 0.02em;
+    margin-bottom: 1rem;
+  }
+
+  .hero-title em {
+    color: var(--gold);
+    font-style: normal;
+  }
+
+  .hero-desc {
+    max-width: 480px;
+    font-size: 14px;
+    color: var(--text-sec);
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  /* ── Metrics ─────────────────────────────── */
+  .metrics-row {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .metric-cell {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    background: var(--bg);
+    min-width: 100px;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-ter);
+    margin-bottom: 4px;
+  }
+
+  .metric-val {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 28px;
+    letter-spacing: 0.04em;
+    color: var(--text-pri);
+    line-height: 1;
+  }
+
+  .metric-val.gold { color: var(--gold); }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--text-ter);
+    margin-top: 2px;
+  }
+
+  /* ── User profile ────────────────────────── */
+  #user-section { display: none; }
+
+  .user-bar {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 2.5rem;
+    flex-wrap: wrap;
+    background: var(--bg-card);
+  }
+
+  .user-section-block { min-width: 140px; }
+
+  .user-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-ter);
+    margin-bottom: 8px;
+  }
+
+  .genre-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  .genre-chip {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-mid);
+    color: var(--text-sec);
+    background: transparent;
+  }
+
+  .genre-chip.strong {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--gold-dim);
+  }
+
+  .score-track {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    width: 120px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .score-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 1px;
+    transition: width 0.5s var(--ease);
+  }
+
+  .score-label { font-size: 12px; color: var(--text-sec); }
+
+  .history-list { display: flex; flex-direction: column; gap: 4px; }
+
+  .history-item {
+    font-size: 12px;
+    color: var(--text-sec);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .history-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  /* ── Section header ──────────────────────── */
+  .section-header {
+    padding: 2rem 2rem 1rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    color: var(--text-pri);
+  }
+
+  .section-count { font-size: 12px; color: var(--text-ter); }
+
+  /* ── Grid ────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin: 0 0 3rem;
+  }
+
+  /* ── Card ────────────────────────────────── */
+  .card-wrap {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: background var(--t) var(--ease);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-wrap:hover { background: var(--bg-raised); }
+
+  .card-poster {
+    position: relative;
+    aspect-ratio: 2/3;
+    overflow: hidden;
+    background: var(--bg-card);
+  }
+
+  .card-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--t) var(--ease), filter var(--t) var(--ease);
+  }
+
+  .card-wrap:hover .card-poster img {
+    transform: scale(1.04);
+    filter: brightness(0.25) saturate(0.4);
+  }
+
+  /* Rank badge */
+  .card-rank {
+    position: absolute;
+    top: 8px; left: 8px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.6);
+    background: rgba(0,0,0,0.7);
+    padding: 2px 7px;
+    border-radius: 4px;
+    z-index: 2;
+    transition: opacity var(--t);
+  }
+
+  .card-wrap:hover .card-rank { opacity: 0; }
+
+  /* Type badge */
+  .card-type {
+    position: absolute;
+    top: 8px; right: 8px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    z-index: 2;
+    transition: opacity var(--t);
+  }
+
+  .card-wrap:hover .card-type { opacity: 0; }
+
+  /* Hover overlay */
+  .card-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1rem;
+    opacity: 0;
+    transition: opacity var(--t) var(--ease);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .card-wrap:hover .card-overlay { opacity: 1; }
+
+  .overlay-genres-label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 6px;
+  }
+
+  .overlay-genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .genre-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    backdrop-filter: blur(4px);
+    white-space: nowrap;
+  }
+
+  .overlay-score {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .star-icon { color: var(--gold); font-size: 13px; }
+
+  .overlay-score-val {
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+  }
+
+  .overlay-members {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-left: 2px;
+  }
+
+  /* Card info below poster */
+  .card-info {
+    padding: 12px 12px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-pri);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-meta {
+    font-size: 11px;
+    color: var(--text-ter);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .meta-dot { color: var(--text-ter); opacity: 0.4; }
+
+  /* Pipeline score bar */
+  .score-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 1px;
+    transition: width 0.5s var(--ease);
+  }
+
+  /* ── Toast ───────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(70px);
+    background: var(--text-pri);
+    color: #0a0a0a;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.35s var(--ease);
+    z-index: 999;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Empty state ─────────────────────────── */
+  .empty {
+    grid-column: 1 / -1;
+    padding: 4rem 2rem;
+    text-align: center;
+    color: var(--text-ter);
+    font-size: 13px;
+  }
+
+  /* ── Fade-in animation ───────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-wrap {
+    animation: fadeUp 0.4s var(--ease) both;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sticky header ─────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-text">Anime<em class="logo-accent" style="font-family:'Bebas Neue',cursive;">Intel</em></span>
+      <span class="logo-sub">Recommendation Pipeline</span>
+    </div>
+    <div class="header-controls">
+      <button class="filter-btn active" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" onclick="setFilter('TV')">TV Series</button>
+      <button class="filter-btn" onclick="setFilter('Movie')">Movies</button>
+      <button class="filter-btn" onclick="setFilter('OVA')">OVA</button>
+      <button class="refresh-btn" onclick="refreshRecs()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── Signal strip ───────────────────────────────────────────── -->
+<div class="signal-strip">
+  <span class="signal-strip-label">Active signals</span>
+  <div class="signals">
+    <div class="sig">
+      <span class="sig-dot" style="background:#c9922a"></span>
+      Content
+      <span class="sig-track"><span class="sig-fill" style="width:35%;background:#c9922a"></span></span>
+    </div>
+    <div class="sig">
+      <span class="sig-dot" style="background:#6b61c0"></span>
+      Graph
+      <span class="sig-track"><span class="sig-fill" style="width:25%;background:#6b61c0"></span></span>
+    </div>
+    <div class="sig">
+      <span class="sig-dot" style="background:#1D9E75"></span>
+      Popularity
+      <span class="sig-track"><span class="sig-fill" style="width:20%;background:#1D9E75"></span></span>
+    </div>
+    <div class="sig">
+      <span class="sig-dot" style="background:#D85A30"></span>
+      Recency
+      <span class="sig-track"><span class="sig-fill" style="width:10%;background:#D85A30"></span></span>
+    </div>
+    <div class="sig">
+      <span class="sig-dot" style="background:#484845"></span>
+      Diversity
+      <span class="sig-track"><span class="sig-fill" style="width:10%;background:#484845"></span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Hero ───────────────────────────────────────────────────── -->
+<div class="hero shell">
+  <p class="hero-eyebrow">Multi-signal · Graph-aware · Adaptive</p>
+  <h1 class="hero-title">Find Your<br><em>Next Watch</em></h1>
+  <p class="hero-desc">A five-signal pipeline learns your taste with every selection — combining content affinity, graph traversal, popularity, recency, and diversity into a single ranked list.</p>
+</div>
+
+<!-- ── Metrics bar ────────────────────────────────────────────── -->
+<div class="metrics-row">
+  <div class="metric-cell">
+    <div class="metric-label">Showing</div>
+    <div class="metric-val" id="met-count">0</div>
+    <div class="metric-sub">anime</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-label">Diversity</div>
+    <div class="metric-val gold" id="met-diversity">—</div>
+    <div class="metric-sub">genre spread</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-label">Avg score</div>
+    <div class="metric-val" id="met-score">—</div>
+    <div class="metric-sub">MAL rating</div>
+  </div>
+  <div class="metric-cell">
+    <div class="metric-label">Round</div>
+    <div class="metric-val" id="met-round">1</div>
+    <div class="metric-sub">of recommendations</div>
+  </div>
+</div>
+
+<!-- ── User profile (hidden until first selection) ───────────── -->
+<div id="user-section">
+  <div class="user-bar">
+    <div class="user-section-block">
+      <div class="user-label">Genre preferences</div>
+      <div class="genre-chips" id="genre-chips"></div>
+    </div>
+    <div class="user-section-block">
+      <div class="user-label">Score affinity</div>
+      <div class="score-track">
+        <div class="score-fill" id="score-fill" style="width:70%"></div>
+      </div>
+      <div class="score-label" id="score-label">Prefers 7.0+</div>
+    </div>
+    <div class="user-section-block">
+      <div class="user-label">History</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recommendations grid ───────────────────────────────────── -->
+<div>
+  <div class="section-header">
+    <span class="section-title" id="section-title">Top Picks</span>
+    <span class="section-count" id="section-count"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Anime Intel — API-driven frontend
+   All scoring & user modelling is delegated to the Flask backend.
+   This file owns only: rendering, UI state, and API calls.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── State ──────────────────────────────────────────────────── */
+let round      = 1;
+let filterType = 'all';
+let loading    = false;
+
+// Lightweight mirrors of server state (for UI only — not used for scoring)
+let _historyTitles = [];   // last 4 selections, newest first
+let _genrePrefs    = {};   // { genre: weight } from server
+let _scorePref     = 0.7;  // from server
+let _selections    = 0;    // total selections made
+
+/* ─── Helpers ────────────────────────────────────────────────── */
+function fmt(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return Math.round(n / 1000) + 'K';
+  return String(n);
+}
+
+function setLoading(on) {
+  loading = on;
+  const grid = document.getElementById('grid');
+  if (on) {
+    grid.innerHTML = `
+      <div class="empty" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)"
+             stroke-width="2" stroke-linecap="round" style="animation:spin 1s linear infinite">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        <span style="font-size:12px;color:var(--text-ter)">Ranking…</span>
+      </div>`;
+  }
+}
+
+/* ─── Signal strip — load real weights from config ───────────── */
+async function initSignalStrip() {
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    const w = data.signal_weights;
+
+    const strip = document.querySelector('.signals');
+    const signals = [
+      { label: 'Content',    key: 'content',    color: '#c9922a' },
+      { label: 'Graph',      key: 'graph',      color: '#6b61c0' },
+      { label: 'Popularity', key: 'popularity', color: '#1D9E75' },
+      { label: 'Recency',    key: 'recency',    color: '#D85A30' },
+      { label: 'Diversity',  key: 'diversity',  color: '#484845' },
+    ];
+
+    strip.innerHTML = signals.map(s => {
+      const pct = Math.round((w[s.key] || 0) * 100);
+      return `
+        <div class="sig">
+          <span class="sig-dot" style="background:${s.color}"></span>
+          ${s.label}
+          <span class="sig-track">
+            <span class="sig-fill" style="width:${pct}%;background:${s.color}"></span>
+          </span>
+        </div>`;
+    }).join('');
+
+    // Update hero dataset stats
+    if (data.total_anime) {
+      document.getElementById('met-count').closest('.metrics-row')
+        ?.setAttribute('data-total', data.total_anime);
+    }
+  } catch (e) {
+    // silently keep the hardcoded strip if API isn't up
+  }
+}
+
+/* ─── Render grid from API response ──────────────────────────── */
+function renderCards(recs) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  if (!recs.length) {
+    grid.innerHTML = '<div class="empty">No anime match the current filter. Try "All".</div>';
+    return;
+  }
+
+  const maxScore = recs[0].pipeline;
+
+  recs.forEach((anime, idx) => {
+    const pct = Math.round((anime.pipeline / Math.max(maxScore, 0.001)) * 100);
+    const wrap = document.createElement('div');
+    wrap.className = 'card-wrap';
+    wrap.style.animationDelay = (idx * 35) + 'ms';
+    wrap.onclick = () => selectAnime(anime);
+
+    const epLabel = anime.episodes === 1 ? '1 ep' : `${anime.episodes} eps`;
+
+    wrap.innerHTML = `
+      <div class="card-poster">
+        <img src="${anime.img}" alt="${anime.title}" loading="lazy"
+             onerror="this.style.background='#1a1a1a';this.removeAttribute('src')" />
+        <span class="card-rank">#${idx + 1}</span>
+        <span class="card-type">${anime.type}</span>
+        <div class="card-overlay">
+          <div class="overlay-genres-label">Genres</div>
+          <div class="overlay-genres">
+            ${anime.genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
+          </div>
+          <div class="overlay-score">
+            <span class="star-icon">★</span>
+            <span class="overlay-score-val">${Number(anime.score).toFixed(1)}</span>
+            <span class="overlay-members">${fmt(anime.members)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-title">${anime.title}</div>
+        <div class="card-meta">
+          <span>${anime.year}</span>
+          <span class="meta-dot">·</span>
+          <span>${epLabel}</span>
+        </div>
+        <div class="score-bar">
+          <div class="score-bar-fill" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(wrap);
+  });
+}
+
+function updateMetrics(recs, metrics) {
+  const n = recs.length;
+  document.getElementById('met-count').textContent     = n;
+  document.getElementById('met-diversity').textContent = n ? (metrics.intra_list_diversity ?? '—') : '—';
+  document.getElementById('met-score').textContent     = n ? (metrics.avg_raw_score ?? '—') : '—';
+  document.getElementById('met-round').textContent     = round;
+  document.getElementById('section-count').textContent = n ? `${n} titles` : '';
+  document.getElementById('section-title').textContent =
+    _selections === 0 ? 'Top Picks' : 'Recommended For You';
+}
+
+function renderUserBar(profile) {
+  const section = document.getElementById('user-section');
+  if (!profile || profile.selections === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  const genreEntries = Object.entries(profile.genre_prefs || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+
+  document.getElementById('genre-chips').innerHTML = genreEntries.length
+    ? genreEntries.map(([g, w]) =>
+        `<span class="genre-chip ${w > 0.25 ? 'strong' : ''}">${g}</span>`
+      ).join('')
+    : '<span style="font-size:12px;color:var(--text-ter)">None yet</span>';
+
+  const pct = Math.round((profile.score_pref || 0.7) * 100);
+  document.getElementById('score-fill').style.width = pct + '%';
+  document.getElementById('score-label').textContent =
+    'Prefers ' + ((profile.score_pref || 0.7) * 10).toFixed(1) + '+';
+
+  document.getElementById('history-list').innerHTML =
+    (profile.history_titles || []).map(title =>
+      `<div class="history-item">
+        <span class="history-dot"></span>
+        ${title.length > 30 ? title.slice(0, 30) + '…' : title}
+      </div>`
+    ).join('');
+}
+
+/* ─── Main fetch + render cycle ───────────────────────────────── */
+async function renderGrid() {
+  if (loading) return;
+  setLoading(true);
+
+  try {
+    const res  = await fetch(`/api/recommendations?filter=${filterType}`);
+    const data = await res.json();
+
+    if (data.error) {
+      document.getElementById('grid').innerHTML =
+        `<div class="empty">Error: ${data.error}</div>`;
+      return;
+    }
+
+    const recs    = data.recommendations || [];
+    const metrics = data.metrics || {};
+    const profile = data.user_profile || {};
+
+    // Sync local UI mirrors from server state
+    _selections     = profile.selections || 0;
+    _genrePrefs     = profile.genre_prefs || {};
+    _scorePref      = profile.score_pref  || 0.7;
+    _historyTitles  = profile.history_titles || [];
+
+    renderCards(recs);
+    updateMetrics(recs, metrics);
+    renderUserBar(profile);
+
+  } catch (err) {
+    document.getElementById('grid').innerHTML =
+      `<div class="empty">Could not reach the API. Is <code>api.py</code> running?<br>
+       <span style="font-size:11px;color:var(--text-ter)">${err.message}</span></div>`;
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ─── Actions ─────────────────────────────────────────────────── */
+async function selectAnime(anime) {
+  // Optimistic UI: increment round immediately
+  round++;
+
+  try {
+    await fetch('/api/select', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ anime_id: anime.id }),
+    });
+  } catch (err) {
+    console.warn('Select API call failed:', err);
+  }
+
+  toast('Selected: ' + anime.title);
+  await renderGrid();
+}
+
+async function refreshRecs() {
+  try {
+    await fetch('/api/refresh', { method: 'POST' });
+  } catch (err) {
+    console.warn('Refresh API call failed:', err);
+  }
+  toast('Recommendations refreshed');
+  await renderGrid();
+}
+
+function setFilter(type) {
+  filterType = type;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    const map = { all: 'All', TV: 'TV Series', Movie: 'Movies', OVA: 'OVA' };
+    btn.classList.toggle('active', btn.textContent.trim() === map[type]);
+  });
+  renderGrid();
+}
+
+/* ─── Toast ───────────────────────────────────────────────────── */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ─── Spinner keyframe (injected so we don't touch the <style>) ── */
+const _ks = document.createElement('style');
+_ks.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+document.head.appendChild(_ks);
+
+/* ─── Init ────────────────────────────────────────────────────── */
+initSignalStrip();
+renderGrid();
+</script>
+</body>
+</html>

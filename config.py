@@ -12,7 +12,8 @@ JIKAN_BASE_URL = "https://api.jikan.moe/v4"
 RATE_LIMIT_SLEEP = 0.5        # seconds between API calls
 REQUEST_TIMEOUT = 15           # in case server issue? 
 
-TOP_ANIME_PAGES = 80           # pages of top anime to fetch (25 per page)
+TOP_ANIME_PAGES = 120           # pages of top anime to fetch (25 per page)
+POPULAR_ANIME_PAGES = 80
 SEASONAL_FETCH = True          # also fetch current season
 FETCH_RECOMMENDATIONS = True   # fetch per-anime recommendations from Jikan
 MAX_RECOMMENDATIONS_PER_ANIME = 5  # limit per anime to control API calls. there is a runtime error if no recommendations for that anime, handle this

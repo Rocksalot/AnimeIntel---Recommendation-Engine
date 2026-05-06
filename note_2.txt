@@ -1,0 +1,19 @@
+Fix the algorithm that computes adjacency graph, for both recommendation and genre overlap
+---------- stage_fetch_recommendations: After all data is pulled from API, for every anime recommendations are pulled from API
+
+Cache top 5150 anime
+
+the same shows being shown repeatedly is bugged. 
+Increase the cooldown of recommendation entries(same entries being shown after several picks)
+
+the picked shows should never be shown again in the same session
+
+Cold start pack should be revamped to be dynamic(currently starts with the same set of shows)
+
+change the signal weights or tune how they are calculated. Recency, hype, and score are over-weighted. I think. maybe reduce slightly to introduce new features
+
+look at how diversity score is being calculated(I like the recommendations better when diversity gets <0.3, it can be pretty good besides that too....)
+
+Demographic should be a seperate signal or a larger proportion of content signal. 
+
+add more jitter for 2,3 of the recommendations to increase diversity(so hard to get out of a set of genres at some point)

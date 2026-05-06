@@ -32,8 +32,12 @@ def _get(endpoint: str, params: Optional[dict] = None, cache_ttl: int = 86400) -
         print(f"  [JikanClient] Request failed: {exc} --- Params: {params}")
         return None
 
+def fetch_popular_anime(page: int = 1) -> List[dict]:
+    data = _get("anime", params={"order_by": "members", "sort": "desc", "page": page, "limit": 25})
+    return (data or {}).get("data", []) 
+
 def fetch_top_anime(page: int = 1) -> List[dict]:
-    data = _get("top/anime", params={"page": page, "limit": 25})
+    data = _get("top/anime", params={"page": page, "limit": 25}) # /anime?order_by=members&sort=desc&page={page}"
     return (data or {}).get("data", [])
 
 
@@ -66,7 +70,7 @@ def ingest_dataset(pages: int = config.TOP_ANIME_PAGES) -> List[dict]:
 
     print(f"  Fetching top anime ({pages} page(s))…")
     for page in range(1, pages + 1):
-        batch = fetch_top_anime(page)
+        batch = fetch_popular_anime(page) ### replace with top anime depending on test results
         print(f"    Page {page}: {len(batch)} anime")
         raw_anime.extend(batch)
 
